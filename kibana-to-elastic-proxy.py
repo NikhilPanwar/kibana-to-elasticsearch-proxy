@@ -38,6 +38,15 @@ def wildcard_term_search(url, headers, search_term, indice='*'):
         response = requests.post(url + f'/api/console/proxy?path=/{indice}/_search?q=*{search_term}*&method=GET', headers=headers, verify=False, timeout=100)
     pprint(response.json())
 
+# its broken right now
+def raw_query_search(url, headers, query, indice='*'):
+    if indice == '*':
+        response = requests.post(url + '/api/console/proxy?path=/_search&method=POST', headers=headers, json=query, verify=False, timeout=100)
+    else:
+        print(f"Searching in indice: {indice}")
+        response = requests.post(url + '/api/console/proxy?path=/{indice}/_search&method=POST', headers=headers, json=query, verify=False, timeout=100)
+    pprint(response.json())
+
 def main():
     parser = argparse.ArgumentParser(description="Kibana to Elasticsearch proxy")
     parser.add_argument('-s', '--server_url', required=True, help="Server URL (including http/https)")
@@ -48,6 +57,7 @@ def main():
     parser.add_argument('--json', action='store_true', help="Output in JSON format")
     # use --search and take term as input
     parser.add_argument('--search', help="Wildcard search term")
+    parser.add_argument('--raw-query', help="Raw json query to search")
     parser.add_argument('--indice', help="Indice to search in")
 
     args = parser.parse_args()
@@ -62,6 +72,12 @@ def main():
             wildcard_term_search(args.server_url, headers, args.search, args.indice)
         else:
             wildcard_term_search(args.server_url, headers, args.search)
+    elif args.raw_query:
+        pprint(args.raw_query)
+        if args.indice:
+            raw_query_search(args.server_url, headers, args.raw_query, args.indice)
+        else:
+            raw_query_search(args.server_url, headers, args.raw_query)
 
 if __name__ == "__main__":
     main()
