@@ -51,14 +51,17 @@ def dump_index(url, index):
         response = requests.post(url + f'/api/console/proxy?path=/{index}/_search?scroll=1m&method=GET', headers=headers, json={"size": 1000}, verify=False)
         for record in response.json()['hits']['hits']:
             output_file.write(json.dumps(record, ensure_ascii=False) + '\n')
-        print(f"Fetched {len(response.json()["hits"]["hits"])} records")
+        count = len(response.json()['hits']['hits'])
+        print(f"Fetched {len(response.json()['hits']['hits'])} records")
         scroll_id = response.json()['_scroll_id']
         while len(response.json()['hits']['hits']) > 0:
             response = requests.post(url + '/api/console/proxy?path=/_search/scroll&method=GET', headers=headers, json={"scroll": "1m", "scroll_id": scroll_id}, verify=False)
             for record in response.json()['hits']['hits']:
                 output_file.write(json.dumps(record, ensure_ascii=False) + '\n')
+            count += len(response.json()['hits']['hits'])
             print(f"Fetched {len(response.json()["hits"]["hits"])} records")
             scroll_id = response.json()['_scroll_id']
+    pprint(f"Dumping completed .... Saved to {count} records to {index}.json")
 
 def main():
     parser = argparse.ArgumentParser(description="Kibana to Elasticsearch proxy")
