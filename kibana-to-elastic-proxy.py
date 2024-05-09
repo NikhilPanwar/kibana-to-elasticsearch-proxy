@@ -1,7 +1,7 @@
 import argparse
 import requests
 import base64
-import sys
+import sys, json
 from rich.pretty import pprint
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
@@ -47,6 +47,21 @@ def raw_query_search(url, headers, query, indice='*'):
         response = requests.post(url + '/api/console/proxy?path=/{indice}/_search&method=POST', headers=headers, json=query, verify=False, timeout=100)
     pprint(response.json())
 
+def dump_index(url, index):
+    print(f"Dumping index: {index}")
+    with open(f"{index}.json", "w", encoding='utf-8') as output_file:
+        response = requests.post(url + f'/api/console/proxy?path=/{index}/_search?scroll=1m&method=GET', headers=headers, json={"size": 1000}, verify=False)
+        for record in response.json()['hits']['hits']:
+            output_file.write(json.dumps(record, ensure_ascii=False) + '\n')
+        print(f"Fetched {len(response.json()["hits"]["hits"])} records")
+        scroll_id = response.json()['_scroll_id']
+        while len(response.json()['hits']['hits']) > 0:
+            response = requests.post(url + '/api/console/proxy?path=/_search/scroll&method=GET', headers=headers, json={"scroll": "1m", "scroll_id": scroll_id}, verify=False)
+            for record in response.json()['hits']['hits']:
+                output_file.write(json.dumps(record, ensure_ascii=False) + '\n')
+            print(f"Fetched {len(response.json()["hits"]["hits"])} records")
+            scroll_id = response.json()['_scroll_id']
+
 def main():
     parser = argparse.ArgumentParser(description="Kibana to Elasticsearch proxy")
     parser.add_argument('-s', '--server_url', required=True, help="Server URL (including http/https)")
@@ -59,6 +74,7 @@ def main():
     parser.add_argument('--search', help="Wildcard search term")
     parser.add_argument('--raw-query', help="Raw json query to search")
     parser.add_argument('--indice', help="Indice to search in")
+    parser.add_argument('--dump-index', action='store_true', help="Dump index data to file")
 
     args = parser.parse_args()
     headers = initialize_kibana_settings(args.server_url, args.username, args.password)
@@ -78,6 +94,8 @@ def main():
             raw_query_search(args.server_url, headers, args.raw_query, args.indice)
         else:
             raw_query_search(args.server_url, headers, args.raw_query)
+    elif args.dump_index:
+        dump_index(args.server_url, args.indice)
 
 if __name__ == "__main__":
     main()
