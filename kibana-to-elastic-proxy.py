@@ -72,7 +72,7 @@ def main():
     parser.add_argument('--search', help="Wildcard search term")
     parser.add_argument('--raw-query', help="Raw json query to search")
     parser.add_argument('--indice', help="Indice to search in")
-    parser.add_argument('--dump-index', action='store_true', help="Dump index data to file")
+    parser.add_argument('--dump-index', action='store_true', help="Dump entire index")
 
     args = parser.parse_args()
     initialize_kibana_settings(args.server_url, args.username, args.password)
