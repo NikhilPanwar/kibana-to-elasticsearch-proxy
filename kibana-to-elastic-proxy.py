@@ -93,6 +93,9 @@ def main():
         else:
             raw_query_search(args.server_url, args.raw_query)
     elif args.dump_index:
+        if not args.indice:
+            print("Please provide indice to dump")
+            sys.exit(1)
         dump_index(args.server_url, args.indice)
 
 if __name__ == "__main__":
