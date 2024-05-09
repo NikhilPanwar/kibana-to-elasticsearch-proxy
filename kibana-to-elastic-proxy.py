@@ -6,7 +6,6 @@ from rich.pretty import pprint
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
-# global headers
 headers = {}
 
 def initialize_kibana_settings(url, username, password):
@@ -16,9 +15,8 @@ def initialize_kibana_settings(url, username, password):
         encoded_credentials = base64.b64encode(credentials.encode()).decode()
         headers['Authorization'] = f"Basic {encoded_credentials}"
     headers['kbn-xsrf'] = 'kibana'
-    return headers
 
-def fetch_kibana_indices(url, headers, json_format=False):
+def fetch_kibana_indices(url, json_format=False):
     if json_format:
         response = requests.post(url + '/api/console/proxy?path=/_cat/indices?format=json&method=GET', headers=headers, verify=False)
         pprint(response.json())
@@ -26,11 +24,11 @@ def fetch_kibana_indices(url, headers, json_format=False):
         response = requests.post(url + '/api/console/proxy?path=/_cat/indices&method=GET', headers=headers, verify=False)
         print(response.text)
 
-def get_cluster_stats(url, headers):
+def get_cluster_stats(url):
     response = requests.post(url + '/api/console/proxy?path=/_cluster/stats?format=json&method=GET', headers=headers, verify=False)
     pprint(response.json())
 
-def wildcard_term_search(url, headers, search_term, indice='*'):
+def wildcard_term_search(url, search_term, indice='*'):
     if indice == '*':
         response = requests.post(url + f'/api/console/proxy?path=/_search?q=*{search_term}*&method=GET', headers=headers, verify=False, timeout=100)
     else:
@@ -39,7 +37,7 @@ def wildcard_term_search(url, headers, search_term, indice='*'):
     pprint(response.json())
 
 # its broken right now
-def raw_query_search(url, headers, query, indice='*'):
+def raw_query_search(url, query, indice='*'):
     if indice == '*':
         response = requests.post(url + '/api/console/proxy?path=/_search&method=POST', headers=headers, json=query, verify=False, timeout=100)
     else:
@@ -77,23 +75,23 @@ def main():
     parser.add_argument('--dump-index', action='store_true', help="Dump index data to file")
 
     args = parser.parse_args()
-    headers = initialize_kibana_settings(args.server_url, args.username, args.password)
+    initialize_kibana_settings(args.server_url, args.username, args.password)
 
     if args.get_indices:
-        fetch_kibana_indices(args.server_url, headers, args.json)
+        fetch_kibana_indices(args.server_url, args.json)
     elif args.get_stats:
-        get_cluster_stats(args.server_url, headers)
+        get_cluster_stats(args.server_url)
     elif args.search:
         if args.indice:
-            wildcard_term_search(args.server_url, headers, args.search, args.indice)
+            wildcard_term_search(args.server_url, args.search, args.indice)
         else:
-            wildcard_term_search(args.server_url, headers, args.search)
+            wildcard_term_search(args.server_url, args.search)
     elif args.raw_query:
         pprint(args.raw_query)
         if args.indice:
-            raw_query_search(args.server_url, headers, args.raw_query, args.indice)
+            raw_query_search(args.server_url, args.raw_query, args.indice)
         else:
-            raw_query_search(args.server_url, headers, args.raw_query)
+            raw_query_search(args.server_url, args.raw_query)
     elif args.dump_index:
         dump_index(args.server_url, args.indice)
 
